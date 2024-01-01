@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Response, status, Depends
 from pydantic import BaseModel, UUID4
 from datetime import datetime
+from typing import Annotated
 import uuid
 from sqlalchemy.orm import Session
+import json
 
-from auth import verify_token
 from database import SessionLocal, engine
 import models, schemas
+# from .auth import oauth2_scheme
+from .auth import JWTBearer
 
 router = APIRouter()
 
@@ -22,17 +25,21 @@ def get_db():
 # def get_users(db: Session, skip: int = 0, limit: int = 100):
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
-@router.get("/admins/db", tags=["admins"], response_model=list[schemas.Admin])
+@router.get("/admins/db", tags=["admins"])
 async def read_admins_from_db(db: Session = Depends(get_db)):
     admins = db.query(models.Admin).all()
-    return admins
-    # return schemas.admin_list
+    res = Response(json.dumps({"data": admins}))
+    res.headers['Content-Type'] = 'application/json'
+    return res
 
-@router.get("/admins/", tags=["admins"], response_model=list[schemas.Admin])
+@router.get("/admins/", dependencies=[Depends(JWTBearer())], tags=["admins"])
 async def read_admins():
-    return schemas.admin_list
+    data = [admin.model_dump() for admin in schemas.admin_list]
+    res = Response(json.dumps({"data": data}, default=str))
+    res.headers['Content-Type'] = 'application/json'
+    return res
 
-@router.post("/admins/", tags=["admins"])
+@router.post("/admins/", dependencies=[Depends(JWTBearer())], tags=["admins"])
 async def add_admin(admin: schemas.AdminIn):
     new_admin = schemas.Admin(
         id=uuid.uuid4(),

@@ -6,8 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from pydantic import BaseModel, HttpUrl
-from routers import admins, login, users
-from auth import verify_token
+from routers import admins, login, users, auth
 import models
 from database import engine
 
@@ -23,16 +22,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.middleware("http")
-async def verify_jwt_for_cud(request: Request, call_next):
-    if request.method in ["POST", "PUT", "DELETE"] and "admins" in request.url.path:
-        # Hanya berlaku untuk operasi CUD dan path tertentu
-        await verify_token(request.headers.get("Authorization"))
-    response = await call_next(request)
-    return response
+# @app.middleware("http")
+# async def verify_jwt_for_cud(request: Request, call_next):
+#     if request.method in ["POST", "PUT", "DELETE"] and "admins" in request.url.path:
+#         # Hanya berlaku untuk operasi CUD dan path tertentu
+#         await verify_token(request.headers.get("Authorization"))
+#     response = await call_next(request)
+#     return response
 
 app.include_router(admins.router)
-app.include_router(login.router)
+app.include_router(auth.router)
 app.include_router(users.router)
 
 class User(BaseModel):

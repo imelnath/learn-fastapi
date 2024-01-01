@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Response, status, Depends
 from pydantic import BaseModel, UUID4
 from datetime import datetime
-import uuid
+import uuid, json
 from sqlalchemy.orm import Session
 
-from auth import verify_token
 from database import SessionLocal, engine
 import models, schemas
 
@@ -19,10 +18,20 @@ def get_db():
     finally:
         db.close()
 
+def sqlalchemy_to_dict(obj):
+    data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if "id" in data and isinstance(data["id"], uuid.UUID):
+        data["id"] = str(data["id"])
+    return data
+
 # def get_users(db: Session, skip: int = 0, limit: int = 100):
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
-@router.get("/users/", tags=["users"], response_model=list[schemas.User])
+@router.get("/users/", tags=["users"])
 async def read_users(db: Session = Depends(get_db)):
     users = db.query(models.User).all()
-    return users
+
+    data = [sqlalchemy_to_dict(user) for user in users]
+    res = Response(json.dumps({"data": data}))
+    res.headers['Content-Type'] = 'application/json'
+    return res

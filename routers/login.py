@@ -1,9 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from pydantic import BaseModel, UUID4
 from datetime import datetime, timedelta
 
 from jose import JWTError, jwt
-import uuid
+import uuid, json
 from schemas import admin_list
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -34,5 +34,7 @@ async def login(admin: AdminLogin):
             access_token = create_access_token(
                 data={"sub": admin.username}, expires_delta=access_token_expires
             )
-            return {"access_token": access_token, "token_type": "bearer"}
+            res = Response(json.dumps({"access_token": access_token, "token_type": "bearer"}))
+            res.headers['Content-Type'] = 'application/json'
+            return res
             # return {"message": "Login successful"}
